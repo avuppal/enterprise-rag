@@ -238,3 +238,48 @@ class TestIngestDocuments:
         finally:
             for p in paths:
                 os.unlink(p)
+
+
+# ---------------------------------------------------------------------------
+# late_chunk tests  (closes #1)
+# ---------------------------------------------------------------------------
+
+from src.ingest import late_chunk
+
+
+class TestLateChunk:
+    """Tests for the late-chunking strategy."""
+
+    def test_output_structure(self):
+        """Every chunk must have the required keys."""
+        text = "Hello world. " * 50
+        chunks = late_chunk(text, chunk_size=64, overlap=8)
+        assert len(chunks) > 0
+        required_keys = {"text", "start_char", "end_char", "chunk_index", "embedding", "strategy"}
+        for chunk in chunks:
+            assert required_keys.issubset(chunk.keys()), (
+                f"Chunk missing keys: {required_keys - chunk.keys()}"
+            )
+            assert chunk["strategy"] == "late"
+
+    def test_embedding_dimensionality(self):
+        """All embeddings must have the same positive dimensionality."""
+        text = "The quick brown fox jumps over the lazy dog. " * 20
+        chunks = late_chunk(text, chunk_size=80, overlap=10)
+        assert len(chunks) > 0
+        dims = [len(c["embedding"]) for c in chunks]
+        # All embeddings must share the same dimension
+        assert len(set(dims)) == 1, f"Inconsistent embedding dims: {set(dims)}"
+        assert dims[0] > 0
+
+    def test_no_data_loss(self):
+        """
+        Every character of the original document must appear in at least one chunk.
+        With overlap=0 the chunks concatenate to the exact original text.
+        """
+        text = "abcdefghijklmnopqrstuvwxyz" * 5  # 130 chars
+        chunks = late_chunk(text, chunk_size=26, overlap=0)
+        reconstructed = "".join(c["text"] for c in chunks)
+        assert reconstructed == text, (
+            "Reassembled text does not match original (data loss detected)"
+        )
