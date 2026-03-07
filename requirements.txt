@@ -1,0 +1,18 @@
+# Core RAG dependencies
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+pypdf>=3.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# Evaluation
+rouge-score>=0.1.2
+
+# Development / testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Optional: real cross-encoder (CPU-safe)
+# Uncomment to enable real cross-encoder re-ranking:
+# pip install sentence-transformers[cross-encoder]

@@ -1,0 +1,101 @@
+# RAG Pipeline Configuration
+# All values can be overridden at runtime via environment variables or CLI flags.
+
+# ---------------------------------------------------------------------------
+# Ingestion
+# ---------------------------------------------------------------------------
+ingestion:
+  chunk_size: 512          # Maximum characters per chunk
+  overlap: 64              # Overlap between consecutive chunks (chars)
+  supported_formats:       # File extensions handled by the ingest pipeline
+    - .pdf
+    - .txt
+    - .md
+    - .markdown
+
+# ---------------------------------------------------------------------------
+# Embedding
+# ---------------------------------------------------------------------------
+embedding:
+  model: "all-MiniLM-L6-v2"   # Sentence-transformers model name
+  dimension: 384               # Output embedding dimension
+  batch_size: 64               # Batch size for bulk encoding
+  normalize: true              # L2-normalise embeddings before storage
+
+# ---------------------------------------------------------------------------
+# Vector Store (ChromaDB)
+# ---------------------------------------------------------------------------
+vector_store:
+  type: chromadb
+  persist_directory: "./.chroma_db"
+  collection_name: "enterprise_rag"
+  distance_function: cosine    # cosine | l2 | ip
+
+# ---------------------------------------------------------------------------
+# Retrieval
+# ---------------------------------------------------------------------------
+retrieval:
+  mode: hybrid                 # dense | bm25 | hybrid
+  top_k: 10                    # Candidates fetched per retriever before fusion
+
+  bm25:
+    k1: 1.5                    # Term-frequency saturation
+    b: 0.75                    # Length normalisation
+
+  hybrid:
+    alpha: 0.5                 # 0 = pure BM25, 1 = pure dense
+    rrf_k: 60                  # Reciprocal rank fusion smoothing constant
+
+# ---------------------------------------------------------------------------
+# Re-ranking
+# ---------------------------------------------------------------------------
+reranking:
+  enabled: true
+  top_n: 3                     # Chunks to retain after re-ranking
+  strategy: cross_encoder      # cross_encoder | mmr | none
+
+  cross_encoder:
+    model: "cross-encoder/ms-marco-MiniLM-L-6-v2"   # drop-in; mocked on CPU
+    max_length: 512
+
+  mmr:
+    lambda_: 0.5               # Relevance vs. diversity trade-off
+    top_n: 3
+
+# ---------------------------------------------------------------------------
+# Generation
+# ---------------------------------------------------------------------------
+generation:
+  prompt_template: |
+    You are a helpful assistant. Answer the question using ONLY the context below.
+    If the context does not contain enough information, say "I don't know."
+
+    Context:
+    {context}
+
+    Question: {question}
+
+    Answer:
+  max_tokens: 512
+  temperature: 0.0             # Deterministic by default
+
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+evaluation:
+  k_recall: 5
+  k_ndcg: 5
+  metrics:
+    - recall_at_k
+    - mrr
+    - ndcg_at_k
+    - rouge_l
+    - faithfulness
+
+# ---------------------------------------------------------------------------
+# Observability
+# ---------------------------------------------------------------------------
+observability:
+  log_level: INFO
+  latency_tracking: true       # Per-stage ms breakdown in each query result
+  slow_query_threshold_ms: 500 # Log a warning when total latency exceeds this
