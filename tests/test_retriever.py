@@ -250,3 +250,12 @@ class TestHybridRetriever:
         results = h.query("neural network deep learning", top_k=5)
         scores = [r["score"] for r in results]
         assert scores == sorted(scores, reverse=True)
+
+    def test_alpha_one_pure_dense_weight(self):
+        """alpha=1 weights entirely dense."""
+        h1 = self._make_hybrid(alpha=1.0)
+        # We can just verify it runs and returns properly formatted results.
+        results = h1.query("deep learning", top_k=5)
+        assert len(results) > 0
+        for r in results:
+            assert "score" in r

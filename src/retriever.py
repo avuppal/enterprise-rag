@@ -75,9 +75,16 @@ class BM25Retriever:
         )
         self._N: int = len(corpus)
 
-        # Document frequency per term
+        # Document frequency per term and term frequency per document
         self._df: Dict[str, int] = defaultdict(int)
+        self._tf_maps: List[Dict[str, int]] = []
+        
         for toks in self._tokenized:
+            tf_map: Dict[str, int] = defaultdict(int)
+            for t in toks:
+                tf_map[t] += 1
+            self._tf_maps.append(tf_map)
+            
             for term in set(toks):
                 self._df[term] += 1
 
@@ -87,11 +94,8 @@ class BM25Retriever:
         return math.log((self._N - df + 0.5) / (df + 0.5) + 1)
 
     def _score(self, query_terms: List[str], doc_idx: int) -> float:
-        toks = self._tokenized[doc_idx]
         dl = self._dl[doc_idx]
-        tf_map: Dict[str, int] = defaultdict(int)
-        for t in toks:
-            tf_map[t] += 1
+        tf_map = self._tf_maps[doc_idx]
 
         score = 0.0
         for term in query_terms:
