@@ -239,6 +239,19 @@ class TestIngestDocuments:
             for p in paths:
                 os.unlink(p)
 
+    def test_late_chunking_strategy(self):
+        collection = self._fake_collection()
+        with tempfile.NamedTemporaryFile(suffix=".txt", mode="w", delete=False) as f:
+            f.write("Hello world. This is a test document.")
+            path = f.name
+        try:
+            total = ingest_documents(
+                [path], collection, chunk_size=20, overlap=5, strategy="late"
+            )
+            assert total > 0
+        finally:
+            os.unlink(path)
+
 
 # ---------------------------------------------------------------------------
 # late_chunk tests  (closes #1)

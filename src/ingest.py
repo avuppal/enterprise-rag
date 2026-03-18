@@ -150,6 +150,7 @@ def ingest_documents(
     chunk_size: int = 512,
     overlap: int = 64,
     model_name: str = "all-MiniLM-L6-v2",
+    strategy: str = "standard",
 ) -> int:
     """
     End-to-end ingestion: load → chunk → embed → upsert to ChromaDB collection.
@@ -161,6 +162,7 @@ def ingest_documents(
     chunk_size:  Characters per chunk.
     overlap:     Overlap between chunks.
     model_name:  Sentence-transformer model for embeddings.
+    strategy:    Chunking strategy ('standard' or 'late').
 
     Returns
     -------
@@ -173,8 +175,13 @@ def ingest_documents(
             raise FileNotFoundError(f"Document not found: {path}")
 
         text = load_document(path)
-        chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap)
-        chunks = embed_chunks(chunks, model_name=model_name)
+        if strategy == "late":
+            chunks = late_chunk(
+                text, chunk_size=chunk_size, overlap=overlap, model_name=model_name
+            )
+        else:  # "standard"
+            chunks = chunk_text(text, chunk_size=chunk_size, overlap=overlap)
+            chunks = embed_chunks(chunks, model_name=model_name)
 
         ids = [f"{path.stem}__chunk_{c['chunk_index']}" for c in chunks]
         documents = [c["text"] for c in chunks]
